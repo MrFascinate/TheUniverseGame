@@ -1,0 +1,916 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>The Universe Game — Justin "Mr. Fascinate" Shaifer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Archivo:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --space-0: #05081a;
+    --space-1: #0b1330;
+    --space-2: #1a2a5e;
+    --cream:   #f5e8c7;
+    --cream-2: #efd9a0;
+    --chrome:  #c8cdd5;
+    --chrome-d:#7a828f;
+    --robot:   #b87638;
+    --robot-d: #7a4a1f;
+    --cyan:    #5ecfd4;
+    --amber:   #ffc87a;
+    --ink:     #eaeef7;
+    --mute:    #8b93a7;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    background: var(--space-0);
+    color: var(--ink);
+    font-family: 'Archivo', sans-serif;
+    overflow: hidden;
+    height: 100%;
+    -webkit-font-smoothing: antialiased;
+    user-select: none;
+  }
+
+  #app {
+    position: fixed; inset: 0;
+    width: 100vw; height: 100vh;
+    overflow: hidden;
+  }
+  #hero-bg {
+    position: absolute; inset: 0;
+    width: 100%; height: 100%;
+    z-index: 0;
+    overflow: hidden;
+  }
+  #hero-bg img {
+    position: absolute;
+    left: 0; right: 0;
+    width: 100%;
+    height: 140%;
+    object-fit: cover;
+    object-position: center top;
+    animation: heroBgScroll 28s linear infinite alternate;
+  }
+  #hero-bg::after {
+    content: '';
+    position: absolute; inset: 0;
+    background:
+      linear-gradient(to bottom, rgba(5,8,26,0.65) 0%, rgba(5,8,26,0.45) 40%, rgba(5,8,26,0.72) 100%),
+      radial-gradient(ellipse 120% 80% at 50% 35%, rgba(26,42,94,0.45) 0%, transparent 70%);
+    z-index: 1;
+  }
+  @keyframes heroBgScroll {
+    from { top: 0%; }
+    to   { top: -40%; }
+  }
+  #stars {
+    position: absolute; inset: 0;
+    width: 100%; height: 100%;
+    z-index: 0;
+    background: transparent;
+  }
+  #starfield {
+    position: absolute; inset: 0;
+    z-index: 1;
+    pointer-events: none;
+  }
+
+  /* ============================================================
+     HERO — widescreen, full-bleed cinematic
+     ============================================================ */
+  #hero {
+    position: absolute; inset: 0;
+    z-index: 2;
+    transition: opacity 0.9s ease;
+    min-height: 0;
+    overflow: hidden;
+  }
+  #hero.hidden { opacity: 0; pointer-events: none; }
+  #hero.zooming .hero-stage { animation: heroZoom 1.8s cubic-bezier(.6,.02,.3,1) forwards; }
+  #hero.zooming .hero-top,
+  #hero.zooming .hero-bottom { animation: heroFade 1.0s ease forwards; }
+  @keyframes heroFade {
+    to { opacity: 0; transform: translateY(-20px); }
+  }
+  @keyframes heroZoom {
+    0%   { transform: scale(1); filter: brightness(1); }
+    55%  { transform: scale(3.2); filter: brightness(1.1); }
+    100% { transform: scale(14); filter: brightness(1.6); opacity: 0; }
+  }
+
+  /* Top nav band */
+  .hero-top {
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 24px;
+    padding: 14px 32px;
+    z-index: 5;
+    flex-wrap: wrap;
+  }
+  .hero-top .brand {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.42em;
+    text-transform: uppercase;
+    color: var(--chrome);
+  }
+  .hero-top .brand b {
+    color: var(--cream);
+    font-weight: 500;
+  }
+  .hero-top .nav {
+    display: flex;
+    gap: 28px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: var(--mute);
+  }
+  .hero-top .nav a { color: var(--mute); text-decoration: none; transition: color 0.25s; }
+  .hero-top .nav a:hover { color: var(--cream); }
+
+  /* Main stage: flex column — title on top, controller below */
+  .hero-stage {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 1;
+    will-change: transform;
+    transform-origin: center 55%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding-top: 40px;
+  }
+  .hero-stage > * { pointer-events: auto; }
+
+  /* Title: flow element, full width */
+  .title-band {
+    position: relative;
+    width: 100%;
+    text-align: center;
+    padding: min(1vh, 8px) 6vw min(1vh, 8px);
+    z-index: 3;
+    pointer-events: none;
+    flex-shrink: 0;
+  }
+  .title-eyebrow {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: clamp(9px, 0.8vw, 11px);
+    letter-spacing: 0.5em;
+    text-transform: uppercase;
+    color: var(--cyan);
+    margin-bottom: min(2vh, 12px);
+    opacity: 0.9;
+  }
+  .title-main {
+    font-family: 'Archivo Black', sans-serif;
+    color: var(--cream);
+    line-height: 0.92;
+    letter-spacing: -0.005em;
+    text-shadow: 0 2px 0 rgba(0,0,0,0.45), 0 14px 60px rgba(0,0,0,0.6);
+  }
+  .title-main .the {
+    display: block;
+    font-size: clamp(20px, min(3vw, 4vh), 46px);
+    letter-spacing: 0.28em;
+    color: var(--cream-2);
+    margin-bottom: 6px;
+  }
+  .title-main .universe,
+  .title-main .game {
+    display: block;
+    font-size: clamp(54px, min(11vw, 14vh), 170px);
+    letter-spacing: 0.04em;
+    line-height: 0.94;
+    white-space: nowrap;
+  }
+  .title-main .universe {
+    background: linear-gradient(180deg, #fff4d1 0%, #f5e8c7 45%, #c8a15a 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .title-main .game {
+    background: linear-gradient(180deg, #f5e8c7 0%, #efd9a0 50%, #a07a38 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .title-subline {
+    margin-top: min(3vh, 20px);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: clamp(9px, 0.85vw, 12px);
+    letter-spacing: 0.36em;
+    text-transform: uppercase;
+    color: var(--chrome);
+  }
+  .title-subline b { color: var(--cream-2); font-weight: 500; }
+
+  /* Controller — sits below title in flex flow */
+  .controller-stage {
+    position: relative;
+    width: min(90vw, 82vh);
+    aspect-ratio: 16 / 9;
+    pointer-events: none;
+    overflow: visible;
+    z-index: 1;
+    flex-shrink: 1;
+  }
+  .controller-wrap {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    pointer-events: auto;
+    cursor: pointer;
+    filter: drop-shadow(0 16px 28px rgba(0,0,0,0.55));
+    transition: transform 0.3s ease;
+  }
+  .controller-wrap:hover { transform: translateY(-3px); }
+  .controller-svg {
+    width: 100%;
+    height: 100%;
+    display: block;
+    overflow: visible;
+    pointer-events: none;
+  }
+  /* Hero porthole Earth \u2014 positioned by JS to match SVG ring (cx=800, cy=340, r=172 in 1600x900 viewBox). */
+  .hero-earth-canvas {
+    position: absolute;
+    pointer-events: none;
+    z-index: 2;
+    border-radius: 50%;
+    box-shadow: inset 0 0 30px rgba(0,0,0,0.75);
+    background: radial-gradient(circle at 50% 50%, #040820 0%, #01030a 100%);
+  }
+  .press-hint {
+    position: absolute;
+    left: 50%;
+    top: 62%;
+    transform: translate(-50%, -50%);
+    z-index: 4;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: clamp(9px, 0.85vw, 11px);
+    letter-spacing: 0.42em;
+    color: var(--cyan);
+    text-transform: uppercase;
+    padding: 7px 14px;
+    border: 1px solid rgba(94, 207, 212, 0.55);
+    border-radius: 999px;
+    background: rgba(5, 8, 26, 0.78);
+    backdrop-filter: blur(4px);
+    animation: pulseHint 2.2s ease-in-out infinite;
+    cursor: pointer;
+    white-space: nowrap;
+    pointer-events: auto;
+  }
+  @keyframes pulseHint {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(94,207,212,0.45); opacity: 0.92; }
+    50%      { box-shadow: 0 0 0 18px rgba(94,207,212,0); opacity: 1; }
+  }
+
+  /* Bottom-right CTA cluster */
+  .hero-bottom {
+    position: absolute;
+    bottom: 28px; right: 36px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    z-index: 5;
+  }
+  .synopsis-blurb {
+    max-width: 460px;
+    color: #c4cbdb;
+  }
+  .synopsis-blurb .kicker {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.42em;
+    text-transform: uppercase;
+    color: var(--cyan);
+    margin-bottom: 6px;
+  }
+  .synopsis-blurb p {
+    font-family: 'Archivo', sans-serif;
+    font-size: clamp(12px, 1.1vw, 14px);
+    line-height: 1.5;
+    margin: 0;
+    text-wrap: pretty;
+    max-width: 52ch;
+  }
+  .synopsis-blurb .author {
+    margin-top: 8px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: var(--chrome);
+  }
+  .synopsis-blurb .author b { color: var(--cream-2); font-weight: 500; }
+
+  /* CTA cluster */
+  .cta-cluster {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    align-items: stretch;
+    width: 260px;
+  }
+  .cta {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 11px 20px;
+    font-family: 'Archivo Black', sans-serif;
+    font-size: 12px;
+    letter-spacing: 0.26em;
+    text-transform: uppercase;
+    text-decoration: none;
+    cursor: pointer;
+    border: none;
+    transition: all 0.25s ease;
+  }
+  .cta-primary {
+    background: var(--cream-2);
+    color: var(--space-0);
+    box-shadow: 0 10px 30px -8px rgba(239, 217, 160, 0.45),
+                inset 0 -2px 0 rgba(0,0,0,0.15);
+  }
+  .cta-primary:hover {
+    background: #fff4d1;
+    transform: translateY(-2px);
+    box-shadow: 0 14px 40px -8px rgba(239, 217, 160, 0.65),
+                inset 0 -2px 0 rgba(0,0,0,0.15);
+  }
+  .cta-primary .arrow {
+    display: inline-block;
+    transition: transform 0.25s;
+  }
+  .cta-primary:hover .arrow { transform: translateX(4px); }
+
+  .cta-secondary {
+    background: transparent;
+    color: var(--chrome);
+    border: 1px solid rgba(200,205,213,0.35);
+    padding: 9px 18px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.36em;
+  }
+  .cta-secondary:hover {
+    color: var(--cream);
+    border-color: var(--cyan);
+    background: rgba(94, 207, 212, 0.06);
+  }
+
+  .email-form {
+    display: flex;
+    gap: 0;
+    border: 1px solid rgba(200,205,213,0.25);
+    background: rgba(5, 8, 26, 0.5);
+    backdrop-filter: blur(6px);
+  }
+  .email-form input {
+    flex: 1;
+    background: transparent;
+    border: 0;
+    padding: 10px 14px;
+    color: var(--cream);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    outline: none;
+    min-width: 0;
+  }
+  .email-form input::placeholder { color: var(--mute); letter-spacing: 0.2em; text-transform: uppercase; font-size: 10px; }
+  .email-form button {
+    background: transparent;
+    border: 0;
+    border-left: 1px solid rgba(200,205,213,0.25);
+    padding: 0 18px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: var(--cyan);
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .email-form button:hover { background: rgba(94, 207, 212, 0.1); color: var(--cream); }
+  .email-form.sent input { color: var(--amber); }
+
+  .scroll-hint {
+    position: fixed;
+    top: 14px; left: 50%;
+    transform: translateX(-50%);
+    z-index: 4;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.42em;
+    text-transform: uppercase;
+    color: var(--mute);
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.8s ease 0.6s;
+  }
+  .scroll-hint.show { opacity: 0.55; }
+
+  @media (max-width: 900px) {
+    .title-main .universe, .title-main .game { font-size: clamp(44px, 13vw, 100px); }
+    .hero-bottom { right: 16px; bottom: 16px; }
+    .cta-cluster { width: 220px; }
+    .hero-top { padding: 10px 18px; }
+    .hero-top .nav { display: none; }
+    .controller-stage { width: min(90vw, 62vh); }
+  }
+
+  /* Short-viewport compression — collapse bottom band into a compact row */
+  @media (max-height: 720px) {
+    .title-main .the { font-size: clamp(18px, 2.4vh, 28px); }
+    .title-main .universe, .title-main .game { font-size: clamp(44px, 11vh, 96px); }
+    .title-subline { margin-top: 6px; font-size: 10px; }
+    .title-eyebrow { margin-bottom: 6px; }
+    .synopsis-blurb p { font-size: 11.5px; line-height: 1.4; }
+    .hero-bottom { padding: 0 24px 10px; gap: 16px; }
+    .cta { padding: 9px 16px; font-size: 11px; }
+    .email-form input { padding: 8px 12px; }
+    .press-hint { font-size: 10px; padding: 6px 14px; }
+  }
+  @media (max-height: 600px) {
+    .hero-bottom { display: flex; justify-content: center; align-items: center; }
+    .controller-stage { height: 100%; }
+    .arm { width: min(30vw, 38vh); min-width: 220px; }
+    .console { width: min(28vw, 40vh); min-width: 220px; }
+  }
+
+  /* ============================================================
+     GAME
+     ============================================================ */
+  #game {
+    position: absolute; inset: 0;
+    z-index: 3;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.7s ease;
+  }
+  #game.show { opacity: 1; pointer-events: auto; }
+  #gl {
+    position: absolute; inset: 0;
+    width: 100%; height: 100%;
+    display: block;
+  }
+  .hud {
+    position: absolute; inset: 0;
+    display: grid;
+    grid-template-columns: 1fr 340px;
+    grid-template-rows: auto 1fr auto;
+    padding: 22px 28px;
+    pointer-events: none;
+    gap: 16px;
+  }
+  .hud > * { pointer-events: auto; }
+  .hud-top {
+    grid-column: 1 / -1;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .back {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.32em;
+    text-transform: uppercase;
+    color: var(--chrome);
+    background: rgba(11,19,48,0.55);
+    border: 1px solid rgba(200,205,213,0.25);
+    padding: 9px 16px;
+    border-radius: 2px;
+    cursor: pointer;
+    backdrop-filter: blur(6px);
+    transition: all 0.25s ease;
+  }
+  .back:hover { color: var(--cream); border-color: var(--cyan); }
+  .hud-brand {
+    font-family: 'Archivo Black', sans-serif;
+    color: var(--cream);
+    font-size: 14px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+  }
+  .hud-brand em {
+    font-family: 'JetBrains Mono', monospace;
+    font-style: normal;
+    font-size: 10px;
+    letter-spacing: 0.4em;
+    color: var(--chrome-d);
+    display: block;
+    font-weight: 400;
+    margin-top: 2px;
+  }
+  .synopsis {
+    max-width: 440px;
+    align-self: end;
+    color: var(--ink);
+    background: linear-gradient(180deg, rgba(5,8,26,0) 0%, rgba(5,8,26,0.72) 40%);
+    padding: 24px 4px 12px 20px;
+    border-left: 1px solid rgba(94,207,212,0.25);
+  }
+  .synopsis .kicker {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.42em;
+    text-transform: uppercase;
+    color: var(--cyan);
+    margin-bottom: 10px;
+  }
+  .synopsis h1 {
+    font-family: 'Archivo Black', sans-serif;
+    font-size: clamp(28px, 3vw, 42px);
+    line-height: 0.98;
+    margin: 0 0 14px;
+    color: var(--cream);
+  }
+  .synopsis p {
+    font-family: 'Archivo', sans-serif;
+    font-size: 14px;
+    line-height: 1.55;
+    color: #c4cbdb;
+    margin: 0 0 12px;
+    max-width: 42ch;
+    text-wrap: pretty;
+  }
+  .synopsis .author {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: var(--chrome);
+    margin-top: 16px;
+  }
+  .synopsis .author b { color: var(--cream-2); font-weight: 500; }
+  .synopsis .game-cta {
+    display: inline-block;
+    margin-top: 18px;
+    padding: 12px 20px;
+    background: var(--cream-2);
+    color: var(--space-0);
+    text-decoration: none;
+    font-family: 'Archivo Black', sans-serif;
+    font-size: 11px;
+    letter-spacing: 0.28em;
+    text-transform: uppercase;
+    transition: all 0.25s;
+  }
+  .synopsis .game-cta:hover { background: #fff4d1; transform: translateY(-2px); }
+
+  .stats {
+    grid-column: 2;
+    grid-row: 2 / 4;
+    align-self: stretch;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 18px;
+    background: linear-gradient(180deg, rgba(11,19,48,0.45), rgba(5,8,26,0.75));
+    border: 1px solid rgba(200,205,213,0.15);
+    border-radius: 2px;
+    backdrop-filter: blur(6px);
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .stats-title {
+    font-size: 10px;
+    letter-spacing: 0.42em;
+    text-transform: uppercase;
+    color: var(--mute);
+    padding-bottom: 12px;
+    border-bottom: 1px solid rgba(200,205,213,0.12);
+    margin-bottom: 12px;
+    display: flex;
+    justify-content: space-between;
+  }
+  .stats-title b { color: var(--cyan); font-weight: 400; letter-spacing: 0.3em; }
+  .stat {
+    padding: 10px 0;
+    border-bottom: 1px dashed rgba(200,205,213,0.08);
+    cursor: pointer;
+  }
+  .stat:last-of-type { border-bottom: 0; }
+  .stat-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 11px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--chrome);
+    margin-bottom: 6px;
+  }
+  .stat-row .val {
+    color: var(--cream-2);
+    font-weight: 500;
+    font-size: 12px;
+    letter-spacing: 0.08em;
+    min-width: 52px;
+    text-align: right;
+  }
+  .stat-bar {
+    position: relative;
+    height: 10px;
+    background: rgba(200,205,213,0.08);
+    border: 1px solid rgba(200,205,213,0.12);
+    overflow: hidden;
+  }
+  .stat-bar .fill {
+    position: absolute;
+    inset: 0;
+    width: 50%;
+    transition: width 0.08s linear;
+  }
+  .stat[data-key="water"] .fill       { background: linear-gradient(90deg, #2d6fa8, #5ecfd4); }
+  .stat[data-key="life"] .fill        { background: linear-gradient(90deg, #3d7a4a, #9fd089); }
+  .stat[data-key="intelligence"] .fill{ background: linear-gradient(90deg, #a06a2c, #ffc87a); }
+  .stat[data-key="compute"] .fill     { background: linear-gradient(90deg, #2b3a7a, #7a9eff); }
+  .stat[data-key="ascension"] .fill   { background: linear-gradient(90deg, #c58a2c, #ffe7a3); }
+  .stat-hint {
+    margin-top: 4px;
+    font-size: 9px;
+    letter-spacing: 0.12em;
+    color: var(--mute);
+    text-transform: none;
+    line-height: 1.4;
+  }
+  .preset-row { display: flex; gap: 6px; margin-top: 10px; }
+  .preset {
+    flex: 1;
+    padding: 8px 4px;
+    background: transparent;
+    border: 1px solid rgba(200,205,213,0.18);
+    color: var(--chrome);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+  .preset:hover { color: var(--cream); border-color: var(--cyan); }
+  .preset.active { color: var(--space-0); background: var(--cream-2); border-color: var(--cream-2); }
+
+  @media (max-width: 880px) {
+    .hud { grid-template-columns: 1fr; padding: 14px; }
+    .stats { grid-column: 1; grid-row: auto; max-height: 40vh; overflow: auto; }
+    .synopsis { max-width: 100%; padding-left: 14px; }
+  }
+</style>
+</head>
+<body>
+
+<div id="app">
+  <div id="hero-bg"><img src="assets/theuniversegamephoto.jpg" alt="" /></div>
+  <div id="stars"></div>
+  <canvas id="starfield"></canvas>
+
+  <!-- ============================================================
+       HERO
+       ============================================================ -->
+  <div id="hero">
+    <div class="hero-top">
+      <div class="brand">A NOVEL BY <b>JUSTIN "MR. FASCINATE" SHAIFER</b></div>
+    </div>
+
+    <div class="hero-stage">
+      <!-- Title band spans full width -->
+      <div class="title-band">
+        <h1 class="title-main">
+          <span class="the">THE</span>
+          <span class="universe">UNIVERSE</span>
+          <span class="game">GAME</span>
+        </h1>
+        <div class="title-subline">Tune the planet. <b>Seed the life.</b> Watch it wake.</div>
+      </div>
+
+      <!-- Controller: full-bleed SVG of robotic hands + porthole ring, live Earth canvas inside -->
+      <div class="controller-stage">
+        <div class="controller-wrap" id="controller">
+          <svg class="controller-svg" viewBox="0 0 1600 900" preserveAspectRatio="xMidYMax meet" aria-hidden="true">
+            <defs>
+              <!-- Chrome for controller and robotic hands -->
+              <linearGradient id="chrome" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0"    stop-color="#fdfefe"/>
+                <stop offset="0.35" stop-color="#cfd5de"/>
+                <stop offset="0.65" stop-color="#8a94a1"/>
+                <stop offset="1"    stop-color="#3d4551"/>
+              </linearGradient>
+              <linearGradient id="chromeDeep" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0"    stop-color="#e4e8ee"/>
+                <stop offset="0.5"  stop-color="#8e98a5"/>
+                <stop offset="1"    stop-color="#1f262f"/>
+              </linearGradient>
+              <linearGradient id="chromeHi" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0" stop-color="#ffffff" stop-opacity="0.85"/>
+                <stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
+              </linearGradient>
+              <linearGradient id="ringFaceGrad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0"    stop-color="#ffffff"/>
+                <stop offset="0.22" stop-color="#d4dae2"/>
+                <stop offset="0.58" stop-color="#7d8795"/>
+                <stop offset="1"    stop-color="#3c434d"/>
+              </linearGradient>
+              <linearGradient id="ringInnerGrad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0" stop-color="#3b424b"/>
+                <stop offset="0.5" stop-color="#8690a0"/>
+                <stop offset="1" stop-color="#cfd5de"/>
+              </linearGradient>
+              <!-- Subtle cyan accent for robotic joint LEDs -->
+              <linearGradient id="jointLed" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0" stop-color="#d8fbff"/>
+                <stop offset="0.5" stop-color="#6cdde2"/>
+                <stop offset="1" stop-color="#1f6a70"/>
+              </linearGradient>
+              <!-- Soft warm rim behind -->
+              <radialGradient id="warmGlow" cx="50%" cy="45%" r="55%">
+                <stop offset="0"    stop-color="#ffc87a" stop-opacity="0.22"/>
+                <stop offset="0.55" stop-color="#b87638" stop-opacity="0.05"/>
+                <stop offset="1"    stop-color="#b87638" stop-opacity="0"/>
+              </radialGradient>
+
+              <!-- ============ Robotic finger segment symbol ============ -->
+              <!-- A single finger-joint segment: chrome capsule with a dark seam at the base and a cyan joint ring -->
+              <symbol id="fingerSeg" overflow="visible">
+                <!-- Capsule body (42 wide x 60 tall, pivot at (0,0) = center of base) -->
+                <rect x="-21" y="-54" width="42" height="60" rx="20" fill="url(#chromeDeep)"/>
+                <rect x="-19" y="-52" width="38" height="56" rx="18" fill="url(#chrome)"/>
+                <!-- Top highlight -->
+                <rect x="-14" y="-50" width="28" height="18" rx="14" fill="#ffffff" opacity="0.45"/>
+                <!-- Dark seam band at the base (joint) -->
+                <rect x="-22" y="-2" width="44" height="10" rx="4" fill="#1c222a"/>
+                <!-- Cyan LED joint ring -->
+                <rect x="-18" y="1" width="36" height="3" rx="1.5" fill="url(#jointLed)"/>
+                <!-- Tiny pivot dot on the side -->
+                <circle cx="-21" cy="0" r="3.5" fill="#1c222a"/>
+                <circle cx="21" cy="0" r="3.5" fill="#1c222a"/>
+              </symbol>
+
+              <!-- Finger tip (rounded end): same capsule but tapered -->
+              <symbol id="fingerTip" overflow="visible">
+                <rect x="-19" y="-56" width="38" height="62" rx="19" fill="url(#chromeDeep)"/>
+                <rect x="-17" y="-54" width="34" height="58" rx="17" fill="url(#chrome)"/>
+                <rect x="-12" y="-52" width="24" height="16" rx="12" fill="#ffffff" opacity="0.5"/>
+                <rect x="-20" y="-2" width="40" height="8" rx="3" fill="#1c222a"/>
+                <rect x="-16" y="1" width="32" height="2.5" rx="1.2" fill="url(#jointLed)"/>
+              </symbol>
+            </defs>
+
+            <!-- Warm atmospheric glow behind everything -->
+            <ellipse cx="800" cy="480" rx="700" ry="380" fill="url(#warmGlow)"/>
+
+            <!-- ============================================================ -->
+            <!-- CONTROLLER BODY                                               -->
+            <!-- ============================================================ -->
+            <g id="controllerBody">
+              <!-- Soft ground shadow below -->
+              <ellipse cx="800" cy="700" rx="360" ry="30" fill="#000" opacity="0.45"/>
+
+              <!-- LEFT disc grip -->
+              <ellipse cx="580" cy="610" rx="155" ry="98" fill="url(#chromeDeep)"/>
+              <ellipse cx="580" cy="592" rx="142" ry="82" fill="url(#chrome)"/>
+              <ellipse cx="565" cy="558" rx="92" ry="22" fill="#ffffff" opacity="0.55"/>
+              <ellipse cx="605" cy="600" rx="62" ry="22" fill="#4a525e" opacity="0.45"/>
+              <!-- Panel line -->
+              <path d="M 530 625 Q 580 635 630 625" fill="none" stroke="#2a313b" stroke-width="2" opacity="0.6"/>
+
+              <!-- RIGHT disc grip -->
+              <ellipse cx="1020" cy="610" rx="155" ry="98" fill="url(#chromeDeep)"/>
+              <ellipse cx="1020" cy="592" rx="142" ry="82" fill="url(#chrome)"/>
+              <ellipse cx="1035" cy="558" rx="92" ry="22" fill="#ffffff" opacity="0.55"/>
+              <ellipse cx="995" cy="600" rx="62" ry="22" fill="#4a525e" opacity="0.45"/>
+              <path d="M 970 625 Q 1020 635 1070 625" fill="none" stroke="#2a313b" stroke-width="2" opacity="0.6"/>
+
+              <!-- Central chrome yoke connecting discs, underneath ring -->
+              <path d="M 685 595 Q 665 625 690 665 Q 750 720 800 725 Q 850 720 910 665 Q 935 625 915 595 Z" fill="url(#chromeDeep)"/>
+              <path d="M 695 598 Q 685 620 702 655 Q 760 708 800 712 Q 840 708 898 655 Q 915 620 905 598 Z" fill="url(#chrome)"/>
+              <!-- Indicator slots -->
+              <rect x="716" y="650" width="26" height="3.5" rx="1.5" fill="#1f262f"/>
+              <rect x="858" y="650" width="26" height="3.5" rx="1.5" fill="#1f262f"/>
+              <circle cx="800" cy="665" r="4" fill="#1f262f"/>
+
+              <!-- RING -->
+              <!-- Outer bezel -->
+              <circle cx="800" cy="340" r="232" fill="url(#ringFaceGrad)"/>
+              <!-- Highlight arc on upper bezel -->
+              <path d="M 584 340 Q 610 186 800 156 Q 990 186 1016 340"
+                    fill="none" stroke="#ffffff" stroke-width="3" opacity="0.55"/>
+              <!-- Inner step bezel -->
+              <circle cx="800" cy="340" r="198" fill="url(#ringInnerGrad)"/>
+              <!-- Inner dark well where Earth sits -->
+              <circle cx="800" cy="340" r="174" fill="#040820"/>
+              <!-- Mount tab (ring -> yoke) -->
+              <path d="M 712 555 Q 700 580 720 600 L 880 600 Q 900 580 888 555 Z" fill="url(#chromeDeep)"/>
+              <path d="M 722 560 Q 714 578 726 595 L 874 595 Q 886 578 878 560 Z" fill="url(#chrome)"/>
+              <!-- Specular highlights on bezel -->
+              <ellipse cx="760" cy="218" rx="108" ry="25" fill="#ffffff" opacity="0.45"/>
+              <ellipse cx="740" cy="208" rx="44" ry="9" fill="#ffffff" opacity="0.65"/>
+            </g>
+
+          </svg>
+
+          <!-- Live Earth canvas sits inside the ring -->
+          <canvas id="heroEarthCanvas" class="hero-earth-canvas"></canvas>
+          <div class="press-hint" id="pressHint">▶ Press Start</div>
+        </div>
+      </div>
+
+    <div class="hero-bottom">
+      <div class="cta-cluster">
+        <a href="#preorder" class="cta cta-primary" id="preorderBtn">
+          Pre-order the Book <span class="arrow">→</span>
+        </a>
+        <form class="email-form" id="emailForm">
+          <input type="email" placeholder="your@email.com" required />
+          <button type="submit">Join List</button>
+        </form>
+      </div>
+    </div>
+  </div>
+  </div>
+
+  <div class="scroll-hint" id="scrollHint" style="display:none"></div>
+
+  <!-- ============================================================
+       GAME
+       ============================================================ -->
+  <div id="game">
+    <canvas id="gl"></canvas>
+    <div class="hud">
+      <div class="hud-top">
+        <button class="back" id="backBtn">← Back to Cover</button>
+        <div class="hud-brand">The Universe Game<em>simulation v1.0</em></div>
+      </div>
+
+      <div class="synopsis">
+        <div class="kicker">Synopsis</div>
+        <h1>The Universe<br/>Game</h1>
+        <p>Every civilization that ever asked "are we alone?" was already being watched. Tune the planet. Seed the water. Spark the life. Teach it to think. Watch it wake, or watch it fail, the way all the others have.</p>
+        <p>A meditation on loneliness, creation, and what it costs to be the one holding the controller.</p>
+        <div class="author">A novel by <b>Justin "Mr. Fascinate" Shaifer</b></div>
+        <a href="#preorder" class="game-cta">Pre-order →</a>
+      </div>
+
+      <div class="stats" id="statsPanel">
+        <div class="stats-title"><span>Planetary Parameters</span><b id="statsCode">EARTH-0</b></div>
+
+        <div class="stat" data-key="water">
+          <div class="stat-row"><span>Water</span><span class="val" data-val="water">62%</span></div>
+          <div class="stat-bar"><div class="fill" data-fill="water"></div></div>
+          <div class="stat-hint">Ocean coverage. Drag to reshape the coasts.</div>
+        </div>
+        <div class="stat" data-key="life">
+          <div class="stat-row"><span>Life</span><span class="val" data-val="life">48%</span></div>
+          <div class="stat-bar"><div class="fill" data-fill="life"></div></div>
+          <div class="stat-hint">Biomass. Drives vegetation across the continents.</div>
+        </div>
+        <div class="stat" data-key="intelligence">
+          <div class="stat-row"><span>Intelligence</span><span class="val" data-val="intelligence">30%</span></div>
+          <div class="stat-bar"><div class="fill" data-fill="intelligence"></div></div>
+          <div class="stat-hint">Sapient density. Night lights bloom across the dark side.</div>
+        </div>
+        <div class="stat" data-key="compute">
+          <div class="stat-row"><span>Computing Power</span><span class="val" data-val="compute">18%</span></div>
+          <div class="stat-bar"><div class="fill" data-fill="compute"></div></div>
+          <div class="stat-hint">Orbital infrastructure. Satellites and data rings appear.</div>
+        </div>
+        <div class="stat" data-key="ascension">
+          <div class="stat-row"><span>Ascension</span><span class="val" data-val="ascension">4%</span></div>
+          <div class="stat-bar"><div class="fill" data-fill="ascension"></div></div>
+          <div class="stat-hint">Post-singularity radiance. A golden shell blooms.</div>
+        </div>
+
+        <div class="preset-row">
+          <button class="preset" data-preset="dead">Dead</button>
+          <button class="preset active" data-preset="now">Now</button>
+          <button class="preset" data-preset="utopia">Utopia</button>
+          <button class="preset" data-preset="ascend">Ascend</button>
+        </div>
+
+        <div style="margin-top:12px; font-size:9px; color:var(--mute); letter-spacing:0.2em; text-transform:uppercase;">
+          Drag the bars • Click presets
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://unpkg.com/three@0.146.0/build/three.min.js"></script>
+<script src="https://unpkg.com/three@0.146.0/examples/js/loaders/GLTFLoader.js"></script>
+<script src="game.js?v=10"></script>
+</body>
+</html>

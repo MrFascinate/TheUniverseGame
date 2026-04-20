@@ -1,0 +1,6 @@
+{
+  "outputDirectory": "the-universe-game/project",
+  "rewrites": [
+    { "source": "/", "destination": "/The Last Mind.html" }
+  ]
+}
