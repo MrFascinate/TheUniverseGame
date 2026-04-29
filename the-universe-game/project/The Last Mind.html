@@ -67,18 +67,6 @@
     from { top: 0%; }
     to   { top: -40%; }
   }
-  #stars {
-    position: absolute; inset: 0;
-    width: 100%; height: 100%;
-    z-index: 0;
-    background: transparent;
-  }
-  #starfield {
-    position: absolute; inset: 0;
-    z-index: 1;
-    pointer-events: none;
-  }
-
   /* ============================================================
      HERO — widescreen, full-bleed cinematic
      ============================================================ */
@@ -250,7 +238,12 @@
     border-radius: 50%;
     box-shadow: inset 0 0 30px rgba(0,0,0,0.75);
     background: radial-gradient(circle at 50% 50%, #040820 0%, #01030a 100%);
+    transition: opacity 0.35s ease-out;
   }
+  /* During the Press Start zoom, fade the WebGL canvas out so any sub-pixel
+     drift between the absolutely-positioned canvas and the CSS-scaled SVG
+     ring is invisible. The dark porthole well underneath shows through. */
+  #hero.zooming .hero-earth-canvas { opacity: 0; }
   .press-hint {
     position: absolute;
     left: 50%;
@@ -275,6 +268,101 @@
   @keyframes pulseHint {
     0%, 100% { box-shadow: 0 0 0 0 rgba(94,207,212,0.45); opacity: 0.92; }
     50%      { box-shadow: 0 0 0 18px rgba(94,207,212,0); opacity: 1; }
+  }
+
+  /* Cover-out fade: black veil that fades in during the start zoom so the
+     handoff to simulation.html lands on a fully black frame. */
+  #zoomFade {
+    position: fixed; inset: 0;
+    background: #000;
+    z-index: 50;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.65s ease-in;
+  }
+  #zoomFade.active { opacity: 1; }
+
+  /* Pre-order modal — matches simulation.html */
+  .modal {
+    position: fixed; inset: 0; z-index: 60;
+    display: flex; align-items: center; justify-content: center;
+    animation: modalIn 0.22s ease-out;
+  }
+  .modal[hidden] { display: none; }
+  @keyframes modalIn { from { opacity: 0; } to { opacity: 1; } }
+  .modal-backdrop {
+    position: absolute; inset: 0;
+    background: rgba(0,0,0,0.78);
+    -webkit-backdrop-filter: blur(8px);
+    backdrop-filter: blur(8px);
+    cursor: pointer;
+  }
+  .modal-card {
+    position: relative;
+    width: min(440px, calc(100vw - 32px));
+    background: rgba(12,16,32,0.98);
+    border: 1px solid rgba(255,255,255,0.10);
+    border-radius: 14px;
+    padding: 32px 28px 26px;
+    box-shadow: 0 30px 80px rgba(0,0,0,0.75);
+    color: var(--ink);
+    transform: translateY(8px);
+    animation: cardIn 0.28s cubic-bezier(.2,.8,.2,1) 0.04s forwards;
+  }
+  @keyframes cardIn { to { transform: translateY(0); } }
+  .modal-close {
+    position: absolute; top: 10px; right: 12px;
+    background: transparent; border: 0;
+    width: 32px; height: 32px;
+    font-size: 22px; line-height: 1;
+    color: rgba(255,255,255,0.55);
+    cursor: pointer;
+    border-radius: 50%;
+    transition: all 0.15s;
+    font-family: inherit;
+  }
+  .modal-close:hover { color: #fff; background: rgba(255,255,255,0.08); }
+  .modal-kicker {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px; letter-spacing: 0.42em; text-transform: uppercase;
+    color: var(--cyan); margin-bottom: 10px; font-weight: 500;
+  }
+  .modal-card h2 {
+    font-family: 'Archivo Black', sans-serif;
+    font-size: 28px; line-height: 1.0;
+    margin: 0 0 14px;
+    color: var(--cream);
+    font-weight: 800;
+    letter-spacing: -0.005em;
+  }
+  .modal-card p {
+    font-family: 'Archivo', sans-serif;
+    font-size: 13px; line-height: 1.55;
+    color: #c4cbdb; margin: 0 0 18px;
+  }
+  .modal-card .email-form {
+    display: flex;
+    border: 1px solid rgba(255,255,255,0.18);
+    background: rgba(0,0,0,0.4);
+    border-radius: 8px;
+    overflow: hidden;
+    backdrop-filter: none;
+  }
+  .modal-card .email-form input {
+    padding: 12px 14px;
+    font-size: 12px;
+    letter-spacing: 0.04em;
+  }
+  .modal-card .email-form button {
+    padding: 0 18px;
+    border-radius: 0;
+  }
+  .modal-card .email-form.sent input { color: var(--amber); }
+  .modal-fineprint {
+    margin-top: 14px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px; letter-spacing: 0.22em; text-transform: uppercase;
+    color: rgba(255,255,255,0.32);
   }
 
   /* Bottom-right CTA cluster */
@@ -676,8 +764,6 @@
 
 <div id="app">
   <div id="hero-bg"><img src="assets/theuniversegamephoto.jpg" alt="" /></div>
-  <div id="stars"></div>
-  <canvas id="starfield"></canvas>
 
   <!-- ============================================================
        HERO
@@ -835,7 +921,7 @@
           Pre-order the Book <span class="arrow">→</span>
         </a>
         <form class="email-form" id="emailForm">
-          <input type="email" placeholder="your@email.com" required />
+          <input type="email" placeholder="Email address" required aria-label="Email address" />
           <button type="submit">Join List</button>
         </form>
       </div>
@@ -844,6 +930,22 @@
   </div>
 
   <div class="scroll-hint" id="scrollHint" style="display:none"></div>
+  <div id="zoomFade"></div>
+
+  <div id="preorderModal" class="modal" hidden>
+    <div class="modal-backdrop" data-close></div>
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="preorderTitle">
+      <button class="modal-close" type="button" data-close aria-label="Close">×</button>
+      <div class="modal-kicker">Pre-order</div>
+      <h2 id="preorderTitle">The Universe Game</h2>
+      <p>Drop your email and we'll let you know the moment pre-orders open.</p>
+      <form id="preorderForm" class="email-form" novalidate>
+        <input type="email" placeholder="Email address" required autocomplete="email" aria-label="Email address" />
+        <button type="submit">Notify me</button>
+      </form>
+      <div class="modal-fineprint">No spam. Unsubscribe anytime.</div>
+    </div>
+  </div>
 
   <!-- ============================================================
        GAME
@@ -911,6 +1013,6 @@
 
 <script src="https://unpkg.com/three@0.146.0/build/three.min.js"></script>
 <script src="https://unpkg.com/three@0.146.0/examples/js/loaders/GLTFLoader.js"></script>
-<script src="game.js?v=10"></script>
+<script src="game.js?v=14"></script>
 </body>
 </html>
