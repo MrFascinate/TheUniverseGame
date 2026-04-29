@@ -609,7 +609,8 @@
   @media (max-width: 600px) {
     .hero-top { padding: 10px 14px; }
     .hero-top .brand { font-size: 9px; letter-spacing: 0.30em; }
-    .title-band { padding: min(2vh, 12px) 4vw min(1vh, 6px); }
+    /* Tightened horizontal padding so the title text isn't clipped on narrow phones */
+    .title-band { padding: min(2vh, 12px) 6px min(1vh, 6px); }
     .title-eyebrow { font-size: 9px; letter-spacing: 0.36em; margin-bottom: 6px; }
     .title-main .the { font-size: 11px; letter-spacing: 0.28em; margin-bottom: 2px; }
     .title-main .universe, .title-main .game {

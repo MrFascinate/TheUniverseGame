@@ -435,7 +435,8 @@
     #synopsis {
       display: block;
       position: fixed;
-      top: max(10px, env(safe-area-inset-top, 10px));
+      /* Sits below the Back-to-Cover button with a clear gap */
+      top: calc(max(10px, env(safe-area-inset-top, 10px)) + 50px);
       left: 50%;
       transform: translateX(-50%);
       bottom: auto;
@@ -487,7 +488,9 @@
       padding: 0 16px;
     }
     #synopsis.open .synopsis-inner {
-      max-height: calc(100vh - 90px);
+      /* Leave clearance below for the Pre-order CTA so the dropdown never
+         covers it (synopsis top ~60px + ~190px of bottom-region UI) */
+      max-height: calc(100vh - 250px);
       overflow-y: auto;
       -webkit-overflow-scrolling: touch;
       padding: 4px 16px 14px;
@@ -529,9 +532,11 @@
       overflow-y: auto;
       -webkit-overflow-scrolling: touch;
       transition: padding 0.25s ease;
-      /* See-through panel so the Earth reads behind the controls */
-      background: rgba(10, 10, 15, 0.20);
+      /* See-through panel so the Earth reads cleanly behind the controls */
+      background: rgba(10, 10, 15, 0.22);
       border-color: rgba(255, 255, 255, 0.12);
+      -webkit-backdrop-filter: blur(2px);
+      backdrop-filter: blur(2px);
     }
     #ui .header { margin-bottom: 10px; padding-bottom: 8px; cursor: pointer; }
     /* On phones the chevron is the dominant tap-affordance; keep it bright */
