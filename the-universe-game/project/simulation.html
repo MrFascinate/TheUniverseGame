@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>The Universe Game — Simulation</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -31,6 +31,7 @@
     margin-bottom: 18px; padding-bottom: 14px;
     border-bottom: 1px solid rgba(255,255,255,0.06);
   }
+  #ui .ui-chevron { display: none; } /* shown only on phones */
   #ui .title {
     font-size: 11px; letter-spacing: 0.22em; text-transform: uppercase;
     color: rgba(255,255,255,0.95); font-weight: 600;
@@ -109,7 +110,9 @@
   .controls button.active { background: rgba(108,240,255,0.16); border-color: rgba(108,240,255,0.4); color: #d8fbff; }
 
   #back {
-    position: fixed; top: 24px; left: 24px;
+    position: fixed;
+    top: max(24px, env(safe-area-inset-top, 24px));
+    left: max(24px, env(safe-area-inset-left, 24px));
     font-size: 10px; letter-spacing: 0.28em; text-transform: uppercase;
     text-decoration: none; color: rgba(255,255,255,0.72);
     background: rgba(10,10,15,0.78);
@@ -198,7 +201,9 @@
 
   /* Top-center brand line */
   #brandline {
-    position: fixed; top: 28px; left: 50%;
+    position: fixed;
+    top: max(28px, env(safe-area-inset-top, 28px));
+    left: 50%;
     transform: translateX(-50%);
     z-index: 9;
     font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
@@ -384,7 +389,8 @@
     }
   }
 
-  /* Phone — UI panel becomes a bottom tray; Earth + chrome above stay unblocked */
+  /* Phone — UI panel becomes a collapsible bottom tray.
+     Default state on phones is collapsed (header bar only). Tap header to expand. */
   @media (max-width: 600px) {
     #ui {
       width: auto;
@@ -396,8 +402,21 @@
       max-height: 56vh;
       overflow-y: auto;
       -webkit-overflow-scrolling: touch;
+      transition: padding 0.25s ease;
     }
-    #ui .header { margin-bottom: 10px; padding-bottom: 8px; }
+    #ui .header { margin-bottom: 10px; padding-bottom: 8px; cursor: pointer; }
+    #ui .ui-chevron {
+      display: inline-block;
+      font-size: 14px; line-height: 1;
+      color: rgba(255,255,255,0.55);
+      margin-left: 10px;
+      transition: transform 0.3s ease;
+      align-self: center;
+    }
+    #ui.collapsed { padding: 12px 16px 10px; max-height: none; overflow: visible; }
+    #ui.collapsed .header { margin-bottom: 0; padding-bottom: 0; border-bottom: 0; }
+    #ui.collapsed .slider, #ui.collapsed .controls { display: none; }
+    #ui.collapsed .ui-chevron { transform: rotate(180deg); }
     #ui .title { font-size: 10px; letter-spacing: 0.20em; }
     #ui .sub { font-size: 8.5px; letter-spacing: 0.26em; }
     .slider { margin-bottom: 11px; }
@@ -421,6 +440,7 @@
       letter-spacing: 0.20em;
     }
 
+    .modal { align-items: flex-start; padding-top: max(8vh, env(safe-area-inset-top, 24px)); }
     .modal-card { padding: 24px 22px 20px; width: calc(100vw - 24px); }
     .modal-card h2 { font-size: 24px; }
     .modal-card p { font-size: 12.5px; line-height: 1.5; }
@@ -457,9 +477,10 @@
 </div>
 
 <div id="ui">
-  <div class="header">
+  <div class="header" id="uiHeader">
     <div class="title">The Universe Game</div>
     <div class="sub">simulation v1.0</div>
+    <span class="ui-chevron" aria-hidden="true">▾</span>
   </div>
 
   <div class="slider" data-key="water">
@@ -500,8 +521,8 @@
     <div class="modal-kicker">Pre-order</div>
     <h2 id="preorderTitle">The Universe Game</h2>
     <p>Drop your email and we'll let you know the moment pre-orders open.</p>
-    <form id="preorderForm" class="email-form" novalidate>
-      <input type="email" placeholder="Email address" required autocomplete="email" aria-label="Email address" />
+    <form id="preorderForm" class="email-form" action="https://formspree.io/f/mnjwajny" method="POST" novalidate>
+      <input type="email" name="email" placeholder="Email address" required autocomplete="email" aria-label="Email address" />
       <button type="submit">Notify me</button>
     </form>
     <div class="modal-fineprint">No spam. Unsubscribe anytime.</div>
@@ -525,6 +546,10 @@ const state = {
 };
 const DEFAULTS = { water: 0.5, life: 0.5, intelligence: 0, compute: 0, ascension: 0 };
 
+// One-time mobile detection — drives camera framing and Dyson shell radius
+// so the visual budget reads well on a phone without resizing dynamically.
+const IS_MOBILE = window.matchMedia('(max-width: 600px)').matches;
+
 /* ============================================================
    SCENE SETUP
    ============================================================ */
@@ -537,7 +562,7 @@ renderer.setClearColor(0x000000, 1);
 
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(35, window.innerWidth / window.innerHeight, 0.05, 400);
-camera.position.set(0, 0.7, 4.6);
+camera.position.set(0, IS_MOBILE ? 0.45 : 0.7, IS_MOBILE ? 3.5 : 4.6);
 
 window.addEventListener('resize', () => {
   camera.aspect = window.innerWidth / window.innerHeight;
@@ -562,23 +587,49 @@ class MiniOrbit {
     this.damp = 0.10;
     this.autoRotate = false;
     this.rotSpeed = 0.05;
-    this._dragging = false; this._lx = 0; this._ly = 0;
+    this.pointers = new Map();
+    this.pinchPrev = null;
+    this._lx = 0; this._ly = 0;
 
     dom.addEventListener('pointerdown', (e) => {
-      this._dragging = true; this._lx = e.clientX; this._ly = e.clientY;
+      this.pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
       try { dom.setPointerCapture(e.pointerId); } catch (_) {}
+      if (this.pointers.size === 1) {
+        this._lx = e.clientX; this._ly = e.clientY;
+      } else if (this.pointers.size === 2) {
+        const pts = [...this.pointers.values()];
+        this.pinchPrev = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
+      }
     });
     dom.addEventListener('pointermove', (e) => {
-      if (!this._dragging) return;
-      const dx = e.clientX - this._lx, dy = e.clientY - this._ly;
-      this.tTheta -= dx * 0.005;
-      this.tPhi -= dy * 0.005;
-      this.tPhi = Math.max(0.18, Math.min(Math.PI - 0.18, this.tPhi));
-      this._lx = e.clientX; this._ly = e.clientY;
+      if (!this.pointers.has(e.pointerId)) return;
+      this.pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      if (this.pointers.size === 1) {
+        const dx = e.clientX - this._lx, dy = e.clientY - this._ly;
+        this.tTheta -= dx * 0.005;
+        this.tPhi -= dy * 0.005;
+        this.tPhi = Math.max(0.18, Math.min(Math.PI - 0.18, this.tPhi));
+        this._lx = e.clientX; this._ly = e.clientY;
+      } else if (this.pointers.size === 2) {
+        const pts = [...this.pointers.values()];
+        const d = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
+        if (this.pinchPrev != null && d > 0) {
+          // Spread fingers (d > pinchPrev) → ratio < 1 → distance shrinks (zoom in).
+          const ratio = this.pinchPrev / d;
+          this.tDist = Math.max(this.minDist, Math.min(this.maxDist, this.tDist * ratio));
+        }
+        this.pinchPrev = d;
+      }
     });
     const release = (e) => {
-      this._dragging = false;
+      this.pointers.delete(e.pointerId);
       try { dom.releasePointerCapture(e.pointerId); } catch (_) {}
+      if (this.pointers.size < 2) this.pinchPrev = null;
+      // Resume single-finger orbit anchored to the remaining pointer
+      if (this.pointers.size === 1) {
+        const p = this.pointers.values().next().value;
+        this._lx = p.x; this._ly = p.y;
+      }
     };
     dom.addEventListener('pointerup', release);
     dom.addEventListener('pointercancel', release);
@@ -1884,7 +1935,8 @@ function updateStations(t, compute) {
    DYSON SPHERE — 2000 hex panels, Fibonacci distribution at radius 10.
    Spiral-from-seed appearance order, drift-in animation near threshold.
    ============================================================ */
-const DYSON_R = 2.6;
+// Pull the Dyson shell in on phones so it stays framed alongside Earth at the closer camera distance.
+const DYSON_R = IS_MOBILE ? 2.0 : 2.6;
 const PANEL_COUNT = 2000;
 const dysonGroup = new THREE.Group();
 scene.add(dysonGroup);
@@ -2025,6 +2077,22 @@ rotBtn.addEventListener('click', () => {
   rotBtn.classList.toggle('active', controls.autoRotate);
 });
 
+// Phone UI: collapse the slider tray by default; tap header to expand
+const uiPanel = document.getElementById('ui');
+const uiHeader = document.getElementById('uiHeader');
+const phoneMQ = window.matchMedia('(max-width: 600px)');
+function applyUiCollapseDefault() {
+  if (phoneMQ.matches) uiPanel.classList.add('collapsed');
+  else uiPanel.classList.remove('collapsed');
+}
+applyUiCollapseDefault();
+if (phoneMQ.addEventListener) phoneMQ.addEventListener('change', applyUiCollapseDefault);
+else phoneMQ.addListener(applyUiCollapseDefault); // older Safari
+uiHeader.addEventListener('click', () => {
+  if (!phoneMQ.matches) return;
+  uiPanel.classList.toggle('collapsed');
+});
+
 // Synopsis "Read more" dropdown
 const moreBtn = document.getElementById('moreToggle');
 const moreEl = document.getElementById('synopsisMore');
@@ -2046,13 +2114,13 @@ let lastFocus = null;
 function openPreorder() {
   if (!preorderModal) return;
   lastFocus = document.activeElement;
-  preorderModal.hidden = false;
+  preorderModal.removeAttribute('hidden');
   const input = preorderForm && preorderForm.querySelector('input');
-  if (input) setTimeout(() => input.focus(), 30);
+  if (input) setTimeout(() => { try { input.focus(); } catch (_) {} }, 30);
 }
 function closePreorder() {
   if (!preorderModal) return;
-  preorderModal.hidden = true;
+  preorderModal.setAttribute('hidden', '');
   if (lastFocus && lastFocus.focus) try { lastFocus.focus(); } catch (_) {}
 }
 if (preorderCta) preorderCta.addEventListener('click', openPreorder);
@@ -2062,20 +2130,40 @@ if (preorderModal) {
   });
 }
 window.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape' && preorderModal && !preorderModal.hidden) closePreorder();
+  if (e.key === 'Escape' && preorderModal && !preorderModal.hasAttribute('hidden')) closePreorder();
 });
 if (preorderForm) {
-  preorderForm.addEventListener('submit', (e) => {
+  preorderForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     const input = preorderForm.querySelector('input');
     const btn = preorderForm.querySelector('button');
     if (!input.value || !input.checkValidity()) { input.focus(); return; }
-    preorderForm.classList.add('sent');
-    btn.textContent = '✓ On the list';
-    input.value = 'See you at launch.';
-    input.disabled = true;
+    const originalLabel = btn.textContent;
     btn.disabled = true;
-    setTimeout(closePreorder, 1500);
+    btn.textContent = 'Sending…';
+    try {
+      const res = await fetch(preorderForm.action, {
+        method: 'POST',
+        headers: { 'Accept': 'application/json' },
+        body: new FormData(preorderForm),
+      });
+      if (res.ok) {
+        preorderForm.classList.add('sent');
+        btn.textContent = '✓ On the list';
+        input.value = 'See you at launch.';
+        input.disabled = true;
+        setTimeout(closePreorder, 1500);
+      } else {
+        const data = await res.json().catch(() => null);
+        btn.textContent = (data && data.errors) ? '✗ Check email' : '✗ Try again';
+        btn.disabled = false;
+        setTimeout(() => { if (!input.disabled) btn.textContent = originalLabel; }, 2400);
+      }
+    } catch (_) {
+      btn.textContent = '✗ Network error';
+      btn.disabled = false;
+      setTimeout(() => { if (!input.disabled) btn.textContent = originalLabel; }, 2400);
+    }
   });
 }
 

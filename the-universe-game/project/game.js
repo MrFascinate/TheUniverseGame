@@ -369,38 +369,24 @@
   function positionHeroCanvas() {
     if (state.transitioning) return;
     const wrap = document.querySelector('.controller-wrap');
-    const svgEl = wrap && wrap.querySelector('svg.controller-svg');
-    if (!wrap || !svgEl || !heroCanvas || !heroRenderer) return;
-    const wrapRect = wrap.getBoundingClientRect();
-    const svgRect = svgEl.getBoundingClientRect();
-    if (svgRect.width < 10 || svgRect.height < 10) return;
-    const vbW = 1600, vbH = 900;
-    const scale = Math.min(svgRect.width / vbW, svgRect.height / vbH);
-    const contentW = vbW * scale;
-    const contentH = vbH * scale;
-    const contentLeft = svgRect.left + (svgRect.width  - contentW) / 2;
-    const contentTop  = svgRect.top  + (svgRect.height - contentH);
-    const cxPx = contentLeft + 800 * scale;
-    const cyPx = contentTop  + 340 * scale;
-    const rPx  = 168 * scale;
-    const size = Math.max(60, Math.round(rPx * 2));
-    const left = Math.round(cxPx - rPx - wrapRect.left);
-    const top  = Math.round(cyPx - rPx - wrapRect.top);
+    if (!wrap || !heroCanvas || !heroRenderer) return;
+    const rect = wrap.getBoundingClientRect();
+    if (rect.width < 10) return;
+    // Porthole inner well = r 200 of viewBox 600×600 (aspect-ratio 1) →
+    // diameter is 400/600 = 66.67% of the wrap edge. Keep the canvas square,
+    // centered, sized to the well so the WebGL Earth fills the dark inset.
+    const wellDiameter = Math.max(60, Math.round(rect.width * (400 / 600)));
+    const left = Math.round((rect.width  - wellDiameter) / 2);
+    const top  = Math.round((rect.height - wellDiameter) / 2);
     heroCanvas.style.left   = left + 'px';
     heroCanvas.style.top    = top + 'px';
-    heroCanvas.style.width  = size + 'px';
-    heroCanvas.style.height = size + 'px';
-    heroRenderer.setSize(size, size, false);
+    heroCanvas.style.width  = wellDiameter + 'px';
+    heroCanvas.style.height = wellDiameter + 'px';
+    heroRenderer.setSize(wellDiameter, wellDiameter, false);
     heroCamera.aspect = 1;
     heroCamera.updateProjectionMatrix();
-
-    const hint = document.getElementById('pressHint');
-    if (hint) {
-      const hintY = contentTop + 605 * scale - wrapRect.top;
-      hint.style.left = '50%';
-      hint.style.top  = hintY + 'px';
-      hint.style.transform = 'translateX(-50%)';
-    }
+    // Press-hint is now CSS-positioned (bottom: -52px relative to .controller-wrap),
+    // so no JS placement needed.
   }
   if (heroCanvas) {
     window.addEventListener('resize', positionHeroCanvas);
@@ -461,21 +447,6 @@
   const navPlay = document.getElementById('navPlay');
   if (navPlay) navPlay.addEventListener('click', (e) => { e.preventDefault(); enterGame(); });
 
-  const emailForm = document.getElementById('emailForm');
-  if (emailForm) {
-    emailForm.addEventListener('submit', (e) => {
-      e.preventDefault();
-      const input = emailForm.querySelector('input');
-      const btn = emailForm.querySelector('button');
-      if (!input.value) return;
-      emailForm.classList.add('sent');
-      btn.textContent = '✓ On the list';
-      input.value = 'See you at launch.';
-      input.disabled = true;
-      btn.disabled = true;
-    });
-  }
-
   /* Pre-order modal — opens from the cover's CTA */
   const preorderBtn = document.getElementById('preorderBtn');
   const preorderModal = document.getElementById('preorderModal');
@@ -484,13 +455,13 @@
   function openPreorder() {
     if (!preorderModal) return;
     lastPreorderFocus = document.activeElement;
-    preorderModal.hidden = false;
+    preorderModal.removeAttribute('hidden');
     const input = preorderForm && preorderForm.querySelector('input');
-    if (input) setTimeout(() => input.focus(), 30);
+    if (input) setTimeout(() => { try { input.focus(); } catch (_) {} }, 30);
   }
   function closePreorder() {
     if (!preorderModal) return;
-    preorderModal.hidden = true;
+    preorderModal.setAttribute('hidden', '');
     if (lastPreorderFocus && lastPreorderFocus.focus) {
       try { lastPreorderFocus.focus(); } catch (_) {}
     }
@@ -507,41 +478,75 @@
     });
   }
   window.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && preorderModal && !preorderModal.hidden) closePreorder();
+    if (e.key === 'Escape' && preorderModal && !preorderModal.hasAttribute('hidden')) closePreorder();
   });
   if (preorderForm) {
-    preorderForm.addEventListener('submit', (e) => {
+    preorderForm.addEventListener('submit', async (e) => {
       e.preventDefault();
       const input = preorderForm.querySelector('input');
       const btn = preorderForm.querySelector('button');
       if (!input.value || !input.checkValidity()) { input.focus(); return; }
-      preorderForm.classList.add('sent');
-      btn.textContent = '✓ On the list';
-      input.value = 'See you at launch.';
-      input.disabled = true;
+      const originalLabel = btn.textContent;
       btn.disabled = true;
-      setTimeout(closePreorder, 1500);
+      btn.textContent = 'Sending…';
+      try {
+        const res = await fetch(preorderForm.action, {
+          method: 'POST',
+          headers: { 'Accept': 'application/json' },
+          body: new FormData(preorderForm),
+        });
+        if (res.ok) {
+          preorderForm.classList.add('sent');
+          btn.textContent = '✓ On the list';
+          input.value = 'See you at launch.';
+          input.disabled = true;
+          setTimeout(closePreorder, 1500);
+        } else {
+          const data = await res.json().catch(() => null);
+          btn.textContent = (data && data.errors) ? '✗ Check email' : '✗ Try again';
+          btn.disabled = false;
+          setTimeout(() => { if (!input.disabled) btn.textContent = originalLabel; }, 2400);
+        }
+      } catch (_) {
+        btn.textContent = '✗ Network error';
+        btn.disabled = false;
+        setTimeout(() => { if (!input.disabled) btn.textContent = originalLabel; }, 2400);
+      }
     });
   }
 
+  // Helpers for gating ambient triggers — we don't want any of these
+  // firing while the user is interacting with the pre-order modal,
+  // typing into the email form, or naturally scrolling on a phone.
+  function isInputFocused() {
+    const el = document.activeElement;
+    return !!(el && /^(INPUT|TEXTAREA|SELECT|BUTTON)$/.test(el.tagName));
+  }
+  function isModalOpen() {
+    return !!(preorderModal && !preorderModal.hasAttribute('hidden'));
+  }
+  function isCoarsePointer() {
+    return window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
+  }
+
+  // Desktop-only "scroll-down to enter" affordance. Skipped on touch devices
+  // and while the modal is open so it can't hijack form interaction.
   let scrollAccum = 0;
   window.addEventListener('wheel', (e) => {
     if (state.transitioning) return;
+    if (isModalOpen() || isInputFocused()) return;
+    if (isCoarsePointer()) return;
     scrollAccum += e.deltaY;
     if (scrollAccum > 30) enterGame();
   }, { passive: true });
 
-  let touchStartY = null;
-  window.addEventListener('touchstart', (e) => {
-    touchStartY = e.touches[0].clientY;
-  }, { passive: true });
-  window.addEventListener('touchmove', (e) => {
-    if (state.transitioning || touchStartY == null) return;
-    const dy = touchStartY - e.touches[0].clientY;
-    if (dy > 50) { enterGame(); touchStartY = null; }
-  }, { passive: true });
+  // Note: the previous swipe-up-to-enter handler is gone. On phones it fired
+  // any time the user dragged the page even slightly, blocking modal/email
+  // interaction. The explicit Press Start tap is the only entry on touch.
 
   window.addEventListener('keydown', (e) => {
-    if ((e.key === 'Enter' || e.key === ' ') && !state.transitioning) enterGame();
+    if (state.transitioning) return;
+    if (isModalOpen() || isInputFocused()) return;
+    if (e.key === 'Enter' || e.key === ' ') enterGame();
   });
 })();
