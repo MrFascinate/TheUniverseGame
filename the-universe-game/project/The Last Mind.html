@@ -512,6 +512,7 @@
   }
   .scroll-hint.show { opacity: 0.55; }
 
+  /* Tablet */
   @media (max-width: 900px) {
     .title-main .universe, .title-main .game { font-size: clamp(44px, 13vw, 100px); }
     .hero-bottom { right: 16px; bottom: 16px; }
@@ -519,6 +520,56 @@
     .hero-top { padding: 10px 18px; }
     .hero-top .nav { display: none; }
     .controller-stage { width: min(90vw, 62vh); }
+  }
+
+  /* Phone — center the CTA cluster below the controller, scale the title down,
+     and trim the brand line so nothing wraps. Synopsis blurb gets tucked away. */
+  @media (max-width: 600px) {
+    .hero-top { padding: 10px 14px; }
+    .hero-top .brand { font-size: 9px; letter-spacing: 0.30em; }
+    .title-band { padding: min(2vh, 14px) 5vw min(1vh, 6px); }
+    .title-eyebrow { font-size: 9px; letter-spacing: 0.40em; margin-bottom: 8px; }
+    .title-main .the { font-size: 14px; letter-spacing: 0.32em; margin-bottom: 4px; }
+    .title-main .universe, .title-main .game {
+      font-size: clamp(46px, 14vw, 86px);
+      letter-spacing: 0.02em;
+    }
+    .title-subline { margin-top: 10px; font-size: 9px; letter-spacing: 0.30em; }
+
+    .hero-stage { padding-top: 18px; }
+    .controller-stage { width: min(96vw, 46vh); }
+
+    .synopsis-blurb { display: none; }
+
+    /* Center the CTA cluster, full-width minus margins */
+    .hero-bottom {
+      left: 16px; right: 16px; bottom: 16px;
+      align-items: center;
+    }
+    .cta-cluster { width: 100%; max-width: 360px; }
+    .cta {
+      padding: 12px 18px;
+      font-size: 11px; letter-spacing: 0.20em;
+    }
+    .cta-secondary { display: none; }
+    .email-form input { font-size: 11px; padding: 11px 12px; letter-spacing: 0.05em; }
+    .email-form button { font-size: 9.5px; padding: 0 14px; letter-spacing: 0.26em; }
+
+    .press-hint { font-size: 9px; padding: 6px 12px; letter-spacing: 0.32em; }
+
+    .modal-card { padding: 26px 22px 20px; width: calc(100vw - 24px); }
+    .modal-card h2 { font-size: 24px; }
+    .modal-card p { font-size: 12.5px; line-height: 1.5; }
+  }
+
+  /* Very narrow phones */
+  @media (max-width: 380px) {
+    .hero-top .brand { font-size: 8px; letter-spacing: 0.24em; }
+    .title-main .the { font-size: 12px; }
+    .title-main .universe, .title-main .game {
+      font-size: clamp(40px, 13vw, 64px);
+    }
+    .cta { padding: 11px 14px; font-size: 10px; letter-spacing: 0.18em; }
   }
 
   /* Short-viewport compression — collapse bottom band into a compact row */
