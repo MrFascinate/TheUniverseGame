@@ -611,28 +611,30 @@
     .hero-top .brand { font-size: 9px; letter-spacing: 0.30em; }
     .title-band { padding: min(2vh, 12px) 4vw min(1vh, 6px); }
     .title-eyebrow { font-size: 9px; letter-spacing: 0.36em; margin-bottom: 6px; }
-    .title-main .the { font-size: 13px; letter-spacing: 0.30em; margin-bottom: 3px; }
+    .title-main .the { font-size: 11px; letter-spacing: 0.28em; margin-bottom: 2px; }
     .title-main .universe, .title-main .game {
-      font-size: clamp(36px, 11.5vw, 64px);
-      letter-spacing: 0.01em;
+      font-size: clamp(28px, 9vw, 50px);
+      letter-spacing: 0;
     }
-    .title-subline { margin-top: 8px; font-size: 8.5px; letter-spacing: 0.28em; }
+    .title-subline { margin-top: 6px; font-size: 8px; letter-spacing: 0.26em; }
 
     /* Push controller down toward viewport center, away from the title */
     .hero-stage { padding-top: 14px; }
     .controller-stage {
-      width: min(64vw, 36vh);
+      width: min(60vw, 36vh);
       aspect-ratio: 1 / 1;
-      margin-top: 5vh;
-      margin-bottom: 90px;
+      margin-top: 4vh;
+      margin-bottom: 0;
     }
 
     .synopsis-blurb { display: none; }
 
-    /* Center the CTA cluster, full-width minus margins */
+    /* Pre-order sits directly below the porthole in the flex column */
     .hero-bottom {
-      left: 16px; right: 16px; bottom: 16px;
+      position: static;
       align-items: center;
+      margin: 24px auto 0;
+      padding-bottom: max(16px, env(safe-area-inset-bottom, 16px));
     }
     .cta-cluster { width: 100%; max-width: 320px; }
     .cta {
@@ -664,13 +666,14 @@
   /* Very narrow phones */
   @media (max-width: 380px) {
     .hero-top .brand { font-size: 8px; letter-spacing: 0.22em; }
-    .title-main .the { font-size: 11px; letter-spacing: 0.26em; }
+    .title-main .the { font-size: 10px; letter-spacing: 0.24em; }
     .title-main .universe, .title-main .game {
-      font-size: clamp(30px, 10.5vw, 48px);
+      font-size: clamp(24px, 8vw, 38px);
       letter-spacing: 0;
     }
-    .title-subline { font-size: 8px; letter-spacing: 0.22em; }
-    .controller-stage { margin-top: 4vh; width: min(68vw, 34vh); margin-bottom: 80px; }
+    .title-subline { font-size: 7.5px; letter-spacing: 0.20em; }
+    .controller-stage { margin-top: 3vh; width: min(64vw, 32vh); margin-bottom: 0; }
+    .hero-bottom { margin-top: 20px; }
     .cta { padding: 12px 14px; font-size: 10px; letter-spacing: 0.18em; }
     .press-hint { font-size: 10px; padding: 12px 18px; letter-spacing: 0.28em; }
   }

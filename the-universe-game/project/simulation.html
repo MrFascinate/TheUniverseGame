@@ -27,11 +27,27 @@
     box-shadow: 0 24px 80px -16px rgba(0,0,0,0.7);
   }
   #ui .header {
-    display: flex; justify-content: space-between; align-items: baseline;
+    display: flex; justify-content: space-between; align-items: center;
     margin-bottom: 18px; padding-bottom: 14px;
     border-bottom: 1px solid rgba(255,255,255,0.06);
   }
-  #ui .ui-chevron { display: none; } /* shown only on phones */
+  #ui .ui-action {
+    display: inline-flex; align-items: center; gap: 7px;
+    color: #ffd166;
+    font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.34em;
+    text-transform: uppercase;
+    text-shadow: 0 0 10px rgba(255, 209, 102, 0.45);
+  }
+  #ui .ui-chevron {
+    font-size: 16px;
+    line-height: 1;
+    color: #ffd166;
+    filter: drop-shadow(0 0 6px rgba(255, 209, 102, 0.6));
+    transition: transform 0.3s ease;
+  }
   #ui .title {
     font-size: 11px; letter-spacing: 0.22em; text-transform: uppercase;
     color: rgba(255,255,255,0.95); font-weight: 600;
@@ -351,7 +367,8 @@
     color: rgba(255,255,255,0.32);
   }
 
-  /* Intro fade — black overlay that clears on load for a clean handoff from the cover */
+  /* Intro fade — black overlay with a loading spinner so the wait between
+     cover redirect and first WebGL render reads as intentional. */
   #introFade {
     position: fixed; inset: 0;
     background: #000;
@@ -359,8 +376,29 @@
     opacity: 1;
     pointer-events: none;
     transition: opacity 0.85s ease-out;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
   #introFade.gone { opacity: 0; }
+  .intro-loader {
+    display: flex; flex-direction: column; align-items: center; gap: 18px;
+  }
+  .intro-spinner {
+    width: 44px; height: 44px;
+    border: 2px solid rgba(94, 207, 212, 0.18);
+    border-top-color: #5ecfd4;
+    border-radius: 50%;
+    animation: introSpin 0.95s linear infinite;
+  }
+  .intro-label {
+    font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 10px;
+    letter-spacing: 0.42em;
+    text-transform: uppercase;
+    color: rgba(94, 207, 212, 0.85);
+  }
+  @keyframes introSpin { to { transform: rotate(360deg); } }
 
   /* Tablet — compact top-right console, hide secondary chrome */
   @media (max-width: 900px) {
@@ -405,14 +443,8 @@
       transition: padding 0.25s ease;
     }
     #ui .header { margin-bottom: 10px; padding-bottom: 8px; cursor: pointer; }
-    #ui .ui-chevron {
-      display: inline-block;
-      font-size: 14px; line-height: 1;
-      color: rgba(255,255,255,0.55);
-      margin-left: 10px;
-      transition: transform 0.3s ease;
-      align-self: center;
-    }
+    /* On phones the chevron is the dominant tap-affordance; keep it bright */
+    #ui .ui-chevron { font-size: 18px; }
     #ui.collapsed { padding: 12px 16px 10px; max-height: none; overflow: visible; }
     #ui.collapsed .header { margin-bottom: 0; padding-bottom: 0; border-bottom: 0; }
     #ui.collapsed .slider, #ui.collapsed .controls { display: none; }
@@ -456,7 +488,12 @@
 </style>
 </head>
 <body>
-<div id="introFade"></div>
+<div id="introFade">
+  <div class="intro-loader">
+    <div class="intro-spinner"></div>
+    <div class="intro-label">Initializing universe</div>
+  </div>
+</div>
 <canvas id="gl"></canvas>
 
 <a id="back" href="The Last Mind.html">← Back to Cover</a>
@@ -479,8 +516,10 @@
 <div id="ui">
   <div class="header" id="uiHeader">
     <div class="title">The Universe Game</div>
-    <div class="sub">simulation v1.0</div>
-    <span class="ui-chevron" aria-hidden="true">▾</span>
+    <div class="ui-action">
+      <span>Ascend</span>
+      <span class="ui-chevron" aria-hidden="true">▾</span>
+    </div>
   </div>
 
   <div class="slider" data-key="water">
@@ -562,7 +601,9 @@ renderer.setClearColor(0x000000, 1);
 
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(35, window.innerWidth / window.innerHeight, 0.05, 400);
-camera.position.set(0, IS_MOBILE ? 0.45 : 0.7, IS_MOBILE ? 3.5 : 4.6);
+// Mobile starts at the far end of the orbit range so the entire Dyson shell + flare
+// reads at-a-glance; users can pinch-zoom in.
+camera.position.set(0, IS_MOBILE ? 0.3 : 0.7, IS_MOBILE ? 11.5 : 4.6);
 
 window.addEventListener('resize', () => {
   camera.aspect = window.innerWidth / window.innerHeight;
