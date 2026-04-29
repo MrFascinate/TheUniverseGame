@@ -159,6 +159,8 @@
     border-left: 1px solid rgba(94,207,212,0.30);
     pointer-events: none;
   }
+  /* Mobile synopsis toggle — hidden by default, shown only on phones */
+  .synopsis-mobile-toggle { display: none; }
   #synopsis .kicker {
     font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
     font-size: 10px; letter-spacing: 0.42em; text-transform: uppercase;
@@ -417,6 +419,7 @@
     .slider .val { font-size: 21px; }
     #back { top: 14px; left: 14px; padding: 8px 14px; font-size: 9.5px; letter-spacing: 0.24em; }
     #note { display: none; }
+    /* Hide synopsis on tablets — phones bring it back as a dropdown */
     #synopsis { display: none; }
     #brandline { display: none; }
     #preorderCta {
@@ -424,6 +427,91 @@
       padding: 11px 22px;
       font-size: 11px;
       letter-spacing: 0.22em;
+    }
+  }
+
+  /* Phone — synopsis becomes a top-center dropdown button above the Earth */
+  @media (max-width: 600px) {
+    #synopsis {
+      display: block;
+      position: fixed;
+      top: max(10px, env(safe-area-inset-top, 10px));
+      left: 50%;
+      transform: translateX(-50%);
+      bottom: auto;
+      width: 200px;
+      max-width: calc(100vw - 120px);
+      max-height: none;
+      padding: 0;
+      background: rgba(10, 10, 15, 0.88);
+      -webkit-backdrop-filter: blur(12px);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.10);
+      border-left: 1px solid rgba(255, 255, 255, 0.10);
+      border-radius: 10px;
+      pointer-events: auto;
+      z-index: 11;
+    }
+    .synopsis-mobile-toggle {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      width: 100%;
+      padding: 10px 16px;
+      background: transparent;
+      border: 0;
+      color: #5ecfd4;
+      font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 10px;
+      letter-spacing: 0.40em;
+      text-transform: uppercase;
+      font-weight: 600;
+      cursor: pointer;
+      pointer-events: auto;
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .synopsis-mobile-toggle .syn-chevron {
+      font-size: 13px;
+      line-height: 1;
+      transition: transform 0.3s ease;
+    }
+    #synopsis.open .synopsis-mobile-toggle .syn-chevron { transform: rotate(180deg); }
+
+    /* Collapsible inner content — height-animated dropdown */
+    .synopsis-inner {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.4s ease, padding 0.3s ease;
+      padding: 0 16px;
+    }
+    #synopsis.open .synopsis-inner {
+      max-height: calc(100vh - 90px);
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      padding: 4px 16px 14px;
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    /* Tighter typography for the dropdown — and hide the redundant kicker */
+    #synopsis .synopsis-inner > .kicker { display: none; }
+    #synopsis h1 {
+      font-size: 20px;
+      line-height: 1.0;
+      margin: 8px 0 12px;
+    }
+    #synopsis p {
+      font-size: 12px;
+      line-height: 1.55;
+      color: #c4cbdb;
+      margin: 0 0 10px;
+      max-width: none;
+    }
+    #synopsis .more.open { max-height: 800px; }
+    #synopsis .more-toggle {
+      font-size: 10px;
+      letter-spacing: 0.30em;
     }
   }
 
@@ -441,6 +529,9 @@
       overflow-y: auto;
       -webkit-overflow-scrolling: touch;
       transition: padding 0.25s ease;
+      /* See-through panel so the Earth reads behind the controls */
+      background: rgba(10, 10, 15, 0.20);
+      border-color: rgba(255, 255, 255, 0.12);
     }
     #ui .header { margin-bottom: 10px; padding-bottom: 8px; cursor: pointer; }
     /* On phones the chevron is the dominant tap-affordance; keep it bright */
@@ -501,16 +592,22 @@
 <div id="brandline">A novel by <b>Justin "Mr. Fascinate" Shaifer</b></div>
 
 <div id="synopsis">
-  <div class="kicker">Synopsis</div>
-  <h1>The Universe<br/>Game</h1>
-  <p>In an old, dying universe, a lonely, intellectually isolated super-advanced life form wanders the cosmos in search of purpose, understanding and companionship.</p>
-  <p>The life form happens upon an ancient advanced game, The Universe Game, built by extinct architects exclusively for highly intelligent species. The game dissolves players into a primordial soup and merges them directly with the game computer itself, powered by a black hole.</p>
-  <div class="more" id="synopsisMore">
-    <p>The objective of the game is to steer intelligent life forms inside of a fully rendered universe simulation towards <em>Ascension</em>, or superintelligence. Through trial and error, the "player" happens upon a species that captures their hearts and imagination: humanity. The player believes they must steer humanity towards Ascension through nurture and care.</p>
-    <p>They later learn that there are other players with ulterior motives and wildly differing philosophies, such as "survival of the fittest", that should be employed when steering a species to Ascension.</p>
-    <p>As tensions begin to rise, The Player learns that The Universe Game is far more sinister than its premise suggests, and that they were being manipulated. As the layers of the game are peeled back, the true antagonist, and plot, are revealed.</p>
+  <button type="button" class="synopsis-mobile-toggle" id="synopsisMobileToggle" aria-expanded="false" aria-controls="synopsisInner">
+    <span>Synopsis</span>
+    <span class="syn-chevron" aria-hidden="true">▾</span>
+  </button>
+  <div class="synopsis-inner" id="synopsisInner">
+    <div class="kicker">Synopsis</div>
+    <h1>The Universe<br/>Game</h1>
+    <p>In an old, dying universe, a lonely, intellectually isolated super-advanced life form wanders the cosmos in search of purpose, understanding and companionship.</p>
+    <p>The life form happens upon an ancient advanced game, The Universe Game, built by extinct architects exclusively for highly intelligent species. The game dissolves players into a primordial soup and merges them directly with the game computer itself, powered by a black hole.</p>
+    <div class="more" id="synopsisMore">
+      <p>The objective of the game is to steer intelligent life forms inside of a fully rendered universe simulation towards <em>Ascension</em>, or superintelligence. Through trial and error, the "player" happens upon a species that captures their hearts and imagination: humanity. The player believes they must steer humanity towards Ascension through nurture and care.</p>
+      <p>They later learn that there are other players with ulterior motives and wildly differing philosophies, such as "survival of the fittest", that should be employed when steering a species to Ascension.</p>
+      <p>As tensions begin to rise, The Player learns that The Universe Game is far more sinister than its premise suggests, and that they were being manipulated. As the layers of the game are peeled back, the true antagonist, and plot, are revealed.</p>
+    </div>
+    <button class="more-toggle" id="moreToggle" type="button" aria-expanded="false"><span class="lbl">Read more</span> <span class="arrow">↓</span></button>
   </div>
-  <button class="more-toggle" id="moreToggle" type="button" aria-expanded="false"><span class="lbl">Read more</span> <span class="arrow">↓</span></button>
 </div>
 
 <div id="ui">
@@ -2134,7 +2231,7 @@ uiHeader.addEventListener('click', () => {
   uiPanel.classList.toggle('collapsed');
 });
 
-// Synopsis "Read more" dropdown
+// Synopsis "Read more" dropdown (within the synopsis panel)
 const moreBtn = document.getElementById('moreToggle');
 const moreEl = document.getElementById('synopsisMore');
 if (moreBtn && moreEl) {
@@ -2144,6 +2241,16 @@ if (moreBtn && moreEl) {
     moreBtn.classList.toggle('open', open);
     moreBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
     if (lblEl) lblEl.textContent = open ? 'Read less' : 'Read more';
+  });
+}
+
+// Mobile-only: synopsis dropdown toggle (button at top of screen on phones)
+const synopsisRoot = document.getElementById('synopsis');
+const synopsisToggle = document.getElementById('synopsisMobileToggle');
+if (synopsisRoot && synopsisToggle) {
+  synopsisToggle.addEventListener('click', () => {
+    const open = synopsisRoot.classList.toggle('open');
+    synopsisToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
   });
 }
 
