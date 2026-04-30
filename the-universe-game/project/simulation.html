@@ -525,7 +525,7 @@
       width: auto;
       left: 10px; right: 10px;
       top: auto;
-      bottom: calc(76px + env(safe-area-inset-bottom, 0px));
+      bottom: calc(140px + env(safe-area-inset-bottom, 0px));
       padding: 14px 16px 10px;
       border-radius: 12px;
       max-height: 56vh;
@@ -537,6 +537,15 @@
       border-color: rgba(255, 255, 255, 0.12);
       -webkit-backdrop-filter: blur(2px);
       backdrop-filter: blur(2px);
+    }
+    /* When the Ascend menu is expanded, drop the panel backdrop so the
+       Earth behind the sliders stays clearly visible on phones. */
+    #ui:not(.collapsed) {
+      background: transparent;
+      border-color: transparent;
+      -webkit-backdrop-filter: none;
+      backdrop-filter: none;
+      box-shadow: none;
     }
     #ui .header { margin-bottom: 10px; padding-bottom: 8px; cursor: pointer; }
     /* On phones the chevron is the dominant tap-affordance; keep it bright */
@@ -562,7 +571,7 @@
     }
 
     #preorderCta {
-      bottom: calc(14px + env(safe-area-inset-bottom, 0px));
+      bottom: calc(80px + env(safe-area-inset-bottom, 0px));
       padding: 11px 22px;
       font-size: 10.5px;
       letter-spacing: 0.20em;

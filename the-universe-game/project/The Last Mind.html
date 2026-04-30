@@ -662,6 +662,15 @@
     .modal-card { padding: 26px 22px 20px; width: calc(100vw - 24px); }
     .modal-card h2 { font-size: 24px; }
     .modal-card p { font-size: 12.5px; line-height: 1.5; }
+
+    /* Phones can't smoothly render the desktop scale(14) zoom — swap in a
+       lighter scale+fade so the hand-off to simulation.html stays smooth. */
+    #hero.zooming .hero-stage { animation: heroZoomMobile 1.05s ease-in-out forwards; }
+    @keyframes heroZoomMobile {
+      0%   { transform: scale(1);    filter: brightness(1);   opacity: 1; }
+      55%  { transform: scale(1.45); filter: brightness(1.25); opacity: 0.55; }
+      100% { transform: scale(1.85); filter: brightness(1.5);  opacity: 0; }
+    }
   }
 
   /* Very narrow phones */
